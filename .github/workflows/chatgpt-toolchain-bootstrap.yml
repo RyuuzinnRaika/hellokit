@@ -1,4 +1,4 @@
-name: ChatGPT Android Toolchain Bootstrap
+name: ChatGPT Android Build Tools 34 Bootstrap
 
 on:
   push:
@@ -11,125 +11,18 @@ permissions:
 jobs:
   bundle:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "17"
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.9"
-
-      - name: Resolve exact InkBridge Android build dependencies
+      - name: Package Build Tools 34
         shell: bash
         run: |
           set -euxo pipefail
-          rm -rf /tmp/inkbridge-bootstrap
-          mkdir -p /tmp/inkbridge-bootstrap/app/src/main/java/dev/bootstrap
-          cat > /tmp/inkbridge-bootstrap/settings.gradle.kts <<'EOF'
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
-          }
-          rootProject.name = "InkBridgeBootstrap"
-          include(":app")
-          EOF
-          cat > /tmp/inkbridge-bootstrap/gradle.properties <<'EOF'
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
-          EOF
-          cat > /tmp/inkbridge-bootstrap/build.gradle.kts <<'EOF'
-          plugins {
-              id("com.android.application") version "8.7.3" apply false
-              id("org.jetbrains.kotlin.android") version "2.0.21" apply false
-          }
-          EOF
-          cat > /tmp/inkbridge-bootstrap/app/build.gradle.kts <<'EOF'
-          plugins {
-              id("com.android.application")
-              id("org.jetbrains.kotlin.android")
-          }
-          android {
-              namespace = "dev.bootstrap"
-              compileSdk = 35
-              defaultConfig {
-                  applicationId = "dev.bootstrap"
-                  minSdk = 30
-                  targetSdk = 35
-                  versionCode = 1
-                  versionName = "1"
-              }
-              compileOptions {
-                  sourceCompatibility = JavaVersion.VERSION_17
-                  targetCompatibility = JavaVersion.VERSION_17
-              }
-              kotlinOptions { jvmTarget = "17" }
-          }
-          dependencies {
-              implementation("androidx.core:core-ktx:1.15.0")
-              implementation("androidx.activity:activity-ktx:1.10.0")
-              implementation("androidx.camera:camera-core:1.4.2")
-              implementation("androidx.camera:camera-camera2:1.4.2")
-              implementation("androidx.camera:camera-lifecycle:1.4.2")
-              implementation("androidx.camera:camera-view:1.4.2")
-              implementation("com.google.mlkit:barcode-scanning:17.3.0")
-              implementation("com.tom-roush:pdfbox-android:2.0.27.0")
-          }
-          EOF
-          cat > /tmp/inkbridge-bootstrap/app/src/main/AndroidManifest.xml <<'EOF'
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:theme="@style/AppTheme" />
-          </manifest>
-          EOF
-          mkdir -p /tmp/inkbridge-bootstrap/app/src/main/res/values
-          cat > /tmp/inkbridge-bootstrap/app/src/main/res/values/styles.xml <<'EOF'
-          <resources>
-              <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar" />
-          </resources>
-          EOF
-          cd /tmp/inkbridge-bootstrap
-          gradle --no-daemon :app:assembleDebug --stacktrace
-
-      - name: Pack Gradle and Android SDK
-        shell: bash
-        run: |
-          set -euxo pipefail
-          mkdir -p out/toolchain out/cache
-          GRADLE_BIN="$(readlink -f "$(command -v gradle)")"
-          GRADLE_DIR="$(cd "$(dirname "$GRADLE_BIN")/.." && pwd)"
-          echo "GRADLE_DIR=$GRADLE_DIR"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          ls -la "$ANDROID_HOME/platforms"
-          ls -la "$ANDROID_HOME/build-tools"
-          tar -C "$(dirname "$GRADLE_DIR")" -czf out/toolchain/gradle-8.9.tar.gz "$(basename "$GRADLE_DIR")"
-          SDK_ITEMS=("platforms/android-35" "platform-tools" "licenses")
-          if [ -d "$ANDROID_HOME/build-tools/35.0.0" ]; then
-            SDK_ITEMS+=("build-tools/35.0.0")
-          else
-            BT="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n1)"
-            SDK_ITEMS+=("build-tools/$(basename "$BT")")
-          fi
-          tar -C "$ANDROID_HOME" -czf out/toolchain/android-sdk-min.tar.gz "${SDK_ITEMS[@]}"
-          tar -C "$HOME/.gradle/caches" -czf out/cache/gradle-modules-2.tar.gz modules-2
-          sha256sum out/toolchain/* > out/toolchain/SHA256.txt
-          sha256sum out/cache/* > out/cache/SHA256.txt
-          du -h out/toolchain/* out/cache/*
-
+          test -d "$ANDROID_HOME/build-tools/34.0.0"
+          mkdir -p out
+          tar -C "$ANDROID_HOME" -czf out/android-build-tools-34.0.0.tar.gz build-tools/34.0.0
+          sha256sum out/android-build-tools-34.0.0.tar.gz > out/SHA256.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: inkbridge-local-toolchain
-          path: out/toolchain/*
-          retention-days: 1
-          compression-level: 0
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: inkbridge-local-gradle-cache
-          path: out/cache/*
+          name: inkbridge-build-tools-34
+          path: out/*
           retention-days: 1
           compression-level: 0
