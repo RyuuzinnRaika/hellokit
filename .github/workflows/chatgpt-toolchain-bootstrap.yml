@@ -1,0 +1,23 @@
+name: ChatGPT Toolchain Bootstrap Test
+
+on:
+  push:
+    branches:
+      - chatgpt-toolchain-bootstrap-20261007
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create marker
+        run: |
+          mkdir -p out
+          printf 'toolchain-bootstrap-ok\n' > out/marker.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: toolchain-bootstrap-test
+          path: out/marker.txt
+          retention-days: 1
