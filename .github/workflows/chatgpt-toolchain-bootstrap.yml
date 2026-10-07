@@ -38,6 +38,11 @@ jobs:
           rootProject.name = "InkBridgeBootstrap"
           include(":app")
           EOF
+          cat > /tmp/inkbridge-bootstrap/gradle.properties <<'EOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8
+          EOF
           cat > /tmp/inkbridge-bootstrap/build.gradle.kts <<'EOF'
           plugins {
               id("com.android.application") version "8.7.3" apply false
